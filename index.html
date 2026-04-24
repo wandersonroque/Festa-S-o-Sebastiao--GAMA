@@ -185,97 +185,192 @@
     <span style="font-size: 0.6em;">PEDIDO</span>
 </div>
 
-<div id="modal-cart" onclick="closeCart(event)">
+<div <div id="modal-cart" onclick="closeCart(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h2 style="color: var(--primaria); text-align: center; margin: 0 0 20px;">MEU PEDIDO</h2>
+        
         <div id="lista-itens"></div>
-        <h3 style="text-align: right; color: var(--verde); border-top: 2px solid #eee; padding-top: 15px; margin-bottom: 20px;">TOTAL: <span id="total-modal">R$ 0,00</span></h3>
-        <button style="background:var(--verde); color:white; width:100%; padding:20px; border:none; border-radius:12px; font-family:'Patua One'; font-size: 1.1em; cursor:pointer;" onclick="alert('CHAVE PIX: paroquia.gama@pix.com.br')">PAGAR COM PIX</button>
-        <button style="background:#eee; color:#666; width:100%; padding:12px; border:none; border-radius:10px; margin-top:10px; cursor:pointer;" onclick="toggleCart()">VOLTAR AO MENU</button>
+        
+        <h3 style="text-align: right; color: var(--verde); border-top: 2px solid #eee; padding-top: 15px; margin-bottom: 20px;">
+            TOTAL: <span id="total-modal">R$ 0,00</span>
+        </h3>
+
+        <div style="background: #f9f9f9; border: 2px dashed var(--verde); padding: 8px; border-radius: 12px; margin-bottom: 10px; text-align: center;">
+            <p style="margin: 0; font-size: 0.6em; color: #666; text-transform: none;">CHAVE PIX (E-MAIL):</p>
+            <strong id="chave-pix" style="display: block; color: var(--texto); font-size: 0.75em; margin: 2px 0; text-transform: none;">paroquia.gama@pix.com.br</strong>
+            <button onclick="copiarPix()" style="background: var(--amarelo); border: none; padding: 5px 10px; border-radius: 6px; font-family: 'Patua One'; font-size: 0.6em; cursor: pointer; color: var(--primaria);">COPIAR CHAVE</button>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 10px;">
+            <p style="font-size: 0.65em; text-transform: none; color: #d32f2f; font-weight: bold; margin: 0;">⚠️ APENAS PIX NESTE SITE</p>
+        </div>
+
+        <button style="background:var(--verde); color:white; width:100%; padding:15px; border:none; border-radius:10px; font-family:'Patua One'; font-size: 1em; cursor:pointer; margin-bottom: 8px;" onclick="finalizarPedido()">FINALIZAR PEDIDO</button>
+        
+        <button style="background:#eee; color:#666; width:100%; padding:10px; border:none; border-radius:10px; font-family:'Patua One'; font-size: 0.8em; cursor:pointer;" onclick="toggleCart()">+ ADICIONAR MAIS ITENS</button>
+        Para pagar em dinheiro ou cartão, dirija-se diretamente ao caixa físico da paróquia.
+    </p>
+</div>
+<footer style="text-align: center; padding: 20px 10px; background: #f4f4f4;">
+    <p style="margin: 0; font-size: 0.8em; color: var(--primaria);"><strong>📱 SITE EXCLUSIVO PARA PAGAMENTOS VIA PIX</strong></p>
+    <p style="opacity: 0.5; font-size: 0.6em; margin-top: 10px;">© 2026 PARÓQUIA SÃO SEBASTIÃO - GAMA, DF</p>
+</footer>
     </div>
+</div>
 </div>
 
 <footer>
-    <p style="margin: 0; font-size: 0.8em;">💳 CARTÃO | 💵 DINHEIRO | 📱 PIX</p>
-    <p style="opacity: 0.5; font-size: 0.6em; margin-top: 15px;">© 2026 PARÓQUIA SÃO SEBASTIÃO - GAMA, DF</p>
+        <p style="margin: 0; font-size: 0.8em;">📱 PAGAMENTOS EXCLUSIVOS VIA <strong>PIX</strong></p>
+    <p style="opacity: 0.5; font-size: 0.6em; margin-top: 10px;">© 2026 PARÓQUIA SÃO SEBASTIÃO - GAMA, DF</p>
 </footer>
 
 <script>
-    let carrinho = [];
-    let total = 0;
+let carrinho = [];
+let total = 0;
 
-    function entrarNoSite() {
-        document.getElementById('welcome-screen').style.transform = 'translateY(-100%)';
-        document.getElementById('back-btn').style.display = 'block';
+function entrarNoSite() {
+    document.getElementById('welcome-screen').style.transform = 'translateY(-100%)';
+    document.getElementById('back-btn').style.display = 'block';
+}
+
+function voltarParaCapa() {
+    document.getElementById('welcome-screen').style.transform = 'translateY(0)';
+    document.getElementById('back-btn').style.display = 'none';
+}
+
+function abrirAba(evt, nomeAba) {
+    let secoes = document.getElementsByClassName("secao-menu");
+    for (let i = 0; i < secoes.length; i++) { secoes[i].classList.remove("active"); }
+    let botoes = document.getElementsByClassName("tab-btn");
+    for (let i = 0; i < botoes.length; i++) { botoes[i].classList.remove("active"); }
+    document.getElementById(nomeAba).classList.add("active");
+    evt.currentTarget.classList.add("active");
+    window.scrollTo(0,0);
+}
+
+function add(nome, preco, btn) {
+    carrinho.push({ nome, preco });
+    total += preco;
+    btn.style.background = 'var(--amarelo)';
+    btn.innerText = "OK";
+    setTimeout(() => { btn.style.background = 'var(--verde)'; btn.innerText = "ADD"; }, 400);
+    atualizarInterface();
+}
+
+function removerItem(index) {
+    total -= carrinho[index].preco;
+    carrinho.splice(index, 1);
+    atualizarInterface();
+}
+
+function atualizarInterface() {
+    document.getElementById('cart-count').innerText = carrinho.length;
+    const lista = document.getElementById('lista-itens');
+    lista.innerHTML = carrinho.length === 0 ? '<p style="text-align:center; color:#999;">Vazio.</p>' : '';
+    carrinho.forEach((item, index) => {
+        lista.innerHTML += `
+            <div class="item-carrinho">
+                <div><span>${item.nome}</span><br><small>R$ ${item.preco.toFixed(2)}</small></div>
+                <button class="btn-remove" onclick="removerItem(${index})">X</button>
+            </div>`;
+    });
+    document.getElementById('total-modal').innerText = "R$ " + total.toFixed(2).replace('.',',');
+}
+
+function toggleCart() {
+    const modal = document.getElementById('modal-cart');
+    modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+}
+
+function closeCart(e) { 
+    if(e.target.id === 'modal-cart') toggleCart(); 
+}
+
+function copiarPix() {
+    const chave = "paroquia.gama@pix.com.br";
+    navigator.clipboard.writeText(chave).then(() => {
+        alert("✅ Chave PIX copiada!");
+    });
+}
+
+function finalizarPedido() {
+    if(carrinho.length === 0) return alert("Adicione itens primeiro!");
+    
+    // Pergunta o nome para conferência
+    const nomeFiel = prompt("Digite seu NOME (para conferência no balcão):");
+    if(!nomeFiel || nomeFiel.length < 3) return alert("Nome obrigatório para gerar o ticket!");
+
+    const modalContent = document.querySelector('.modal-content');
+    modalContent.innerHTML = `
+        <div style="text-align:center; padding: 40px 0;">
+            <div style="border: 6px solid #f3f3f3; border-top: 6px solid var(--verde); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+            <p style="font-family:'Patua One'; color: var(--primaria);">VALIDANDO PIX...</p>
+        </div>
+    `;
+
+    setTimeout(() => {
+        const token = Math.floor(1000 + Math.random() * 9000);
+        const resumo = carrinho.map(i => i.nome).join(', ');
+
+        modalContent.innerHTML = `
+            <div id="comprovante-area" style="text-align:center; animation: fadeIn 0.5s;">
+                <h2 style="color:var(--verde); font-size:1.2em;">PAGAMENTO CONFIRMADO!</h2>
+                
+                <div style="background:#fff7e6; border: 3px solid var(--amarelo); padding:15px; border-radius:12px; margin-bottom:15px;">
+                    <p style="font-size:0.6em; color:#666; margin:0;">TITULAR DO PEDIDO:</p>
+                    <strong style="font-size:1.1em; color:var(--primaria); display:block; margin-bottom:10px;">${nomeFiel.toUpperCase()}</strong>
+                    
+                    <p style="font-size:0.6em; margin:0;">CÓDIGO DE RETIRADA:</p>
+                    <strong style="font-size:2.2em; color:var(--primaria);">#${token}</strong>
+                    
+                    <p style="font-size:1em; color:red; font-weight:bold; margin-top:5px; display:inline-block; transition: 0.3s;" id="relogio-vivo">
+                        ${new Date().toLocaleTimeString('pt-BR')}
+                    </p>
+                </div>
+
+                <div style="text-align:left; background:#f9f9f9; padding:8px; border-radius:8px; font-size:0.7em; margin-bottom:15px;">
+                    <strong>PEDIDO:</strong> ${resumo}
+                </div>
+
+                <p style="font-size:0.55em; color:#d32f2f; font-weight:bold;">⚠️ PROIBIDO PRINT. MOSTRAR COMPROVANTE DO PIX NO NOME ACIMA.</p>
+                
+                <button id="btn-baixa" onclick="darBaixa()" style="background:#d32f2f; color:white; width:100%; padding:18px; border:none; border-radius:10px; font-family:'Patua One'; font-size:1em; margin-top:10px; cursor:pointer;">
+                    CONFIRMAR ENTREGA (BALCÃO)
+                </button>
+            </div>
+        `;
+
+        setInterval(() => {
+            const el = document.getElementById('relogio-vivo');
+            if(el) {
+                el.innerText = new Date().toLocaleTimeString('pt-BR');
+                el.style.opacity = (el.style.opacity == "0.5" ? "1" : "0.5");
+            }
+        }, 1000);
+    }, 2000);
+}
+
+function darBaixa() {
+    if(confirm("Confirmar entrega dos produtos?")) {
+        document.getElementById('comprovante-area').innerHTML = `
+            <div style="padding:40px 10px; color:white; background:#333; border-radius:15px; text-align:center;">
+                <h1 style="font-size:2em;">✅</h1><h2>PEDIDO ENTREGUE</h2>
+                <button onclick="location.reload()" style="background:var(--amarelo); border:none; padding:10px; border-radius:5px; margin-top:20px; cursor:pointer;">NOVO PEDIDO</button>
+            </div>
+        `;
     }
+}
 
-    function voltarParaCapa() {
-        document.getElementById('welcome-screen').style.transform = 'translateY(0)';
-        document.getElementById('back-btn').style.display = 'none';
-    }
-
-    function abrirAba(evt, nomeAba) {
-        let i, secoes, botoes;
-        secoes = document.getElementsByClassName("secao-menu");
-        for (i = 0; i < secoes.length; i++) { secoes[i].classList.remove("active"); }
-        botoes = document.getElementsByClassName("tab-btn");
-        for (i = 0; i < botoes.length; i++) { botoes[i].classList.remove("active"); }
-        document.getElementById(nomeAba).classList.add("active");
-        evt.currentTarget.classList.add("active");
-        window.scrollTo(0,0);
-    }
-
-    function add(nome, preco, btn) {
-        carrinho.push({ nome, preco });
-        total += preco;
-        btn.style.background = 'var(--amarelo)';
-        btn.innerText = "OK";
-        setTimeout(() => { btn.style.background = 'var(--verde)'; btn.innerText = "ADD"; }, 400);
-        atualizarInterface();
-    }
-
-    function removerItem(index) {
-        total -= carrinho[index].preco;
-        carrinho.splice(index, 1);
-        atualizarInterface();
-    }
-
-    function atualizarInterface() {
-        document.getElementById('cart-count').innerText = carrinho.length;
-        const lista = document.getElementById('lista-itens');
-        lista.innerHTML = carrinho.length === 0 ? '<p style="text-align:center; color:#999; text-transform:none;">Vazio.</p>' : '';
-        carrinho.forEach((item, index) => {
-            lista.innerHTML += `
-                <div class="item-carrinho">
-                    <div>
-                        <span style="display:block; font-size:0.9em;">${item.nome}</span>
-                        <span style="color:var(--verde); font-size:0.8em;">R$ ${item.preco.toFixed(2).replace('.',',')}</span>
-                    </div>
-                    <button class="btn-remove" onclick="removerItem(${index})">X</button>
-                </div>`;
-        });
-        document.getElementById('total-modal').innerText = "R$ " + total.toFixed(2).replace('.',',');
-    }
-
-    function toggleCart() {
-        const modal = document.getElementById('modal-cart');
-        const isOpen = modal.style.display === 'block';
-        modal.style.display = isOpen ? 'none' : 'block';
-        document.body.style.overflow = isOpen ? 'auto' : 'hidden';
-    }
-
-    function closeCart(e) { if(e.target.id === 'modal-cart') toggleCart(); }
-
-    setInterval(() => {
-        const f = document.createElement("div");
-        f.className = "fagulha";
-        let tam = Math.random() * 8 + 4 + "px";
-        f.style.width = tam; f.style.height = tam;
-        f.style.left = Math.random() * 100 + "vw";
-        f.style.animationDuration = Math.random() * 3 + 2 + "s";
-        document.body.appendChild(f);
-        setTimeout(() => f.remove(), 4500);
-    }, 500);
+setInterval(() => {
+    const f = document.createElement("div");
+    f.className = "fagulha";
+    let tam = Math.random() * 8 + 4 + "px";
+    f.style.width = tam; f.style.height = tam;
+    f.style.left = Math.random() * 100 + "vw";
+    f.style.animationDuration = Math.random() * 3 + 2 + "s";
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 4500);
+}, 500);
 </script>
 
 </body>
