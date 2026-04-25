@@ -296,15 +296,17 @@ function copiarPix() {
 function finalizarPedido() {
     if(carrinho.length === 0) return alert("Adicione itens primeiro!");
     
-    // Pergunta o nome para conferência
-    const nomeFiel = prompt("Digite seu NOME (para conferência no balcão):");
-    if(!nomeFiel || nomeFiel.length < 3) return alert("Nome obrigatório para gerar o ticket!");
+    const nomeFiel = prompt("Digite seu NOME:");
+    if(!nomeFiel || nomeFiel.length < 3) return alert("Nome obrigatório!");
+
+    const horaPix = prompt("Digite a HORA que aparece no comprovante PIX (Ex: 20:45):");
+    if(!horaPix) return alert("A hora do comprovante é obrigatória!");
 
     const modalContent = document.querySelector('.modal-content');
     modalContent.innerHTML = `
         <div style="text-align:center; padding: 40px 0;">
             <div style="border: 6px solid #f3f3f3; border-top: 6px solid var(--verde); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
-            <p style="font-family:'Patua One'; color: var(--primaria);">VALIDANDO PIX...</p>
+            <p style="font-family:'Patua One'; color: var(--primaria);">CONFERINDO HORÁRIOS...</p>
         </div>
     `;
 
@@ -314,28 +316,35 @@ function finalizarPedido() {
 
         modalContent.innerHTML = `
             <div id="comprovante-area" style="text-align:center; animation: fadeIn 0.5s;">
-                <h2 style="color:var(--verde); font-size:1.2em;">PAGAMENTO CONFIRMADO!</h2>
+                <h2 style="color:var(--verde); font-size:1.1em;">TICKET AUTENTICADO</h2>
                 
-                <div style="background:#fff7e6; border: 3px solid var(--amarelo); padding:15px; border-radius:12px; margin-bottom:15px;">
-                    <p style="font-size:0.6em; color:#666; margin:0;">TITULAR DO PEDIDO:</p>
-                    <strong style="font-size:1.1em; color:var(--primaria); display:block; margin-bottom:10px;">${nomeFiel.toUpperCase()}</strong>
+                <div style="background:#fff7e6; border: 2px dashed var(--amarelo); padding:15px; border-radius:12px; margin-bottom:15px;">
+                    <p style="font-size:0.65em; color:#666; margin:0;">RESPONSÁVEL:</p>
+                    <strong style="font-size:1.1em; color:var(--primaria); display:block; margin-bottom:5px;">${nomeFiel.toUpperCase()}</strong>
                     
-                    <p style="font-size:0.6em; margin:0;">CÓDIGO DE RETIRADA:</p>
+                    <div style="display:flex; justify-content:space-around; background:#fff; padding:5px; border-radius:8px; margin-bottom:10px; border:1px solid #ddd;">
+                        <div>
+                            <p style="font-size:0.5em; margin:0;">HORA NO PIX</p>
+                            <strong style="color:var(--verde);">${horaPix}</strong>
+                        </div>
+                        <div style="border-left:1px solid #ddd; padding-left:10px;">
+                            <p style="font-size:0.5em; margin:0;">AGORA (VIVO)</p>
+                            <strong style="color:red;" id="relogio-vivo">${new Date().toLocaleTimeString('pt-BR')}</strong>
+                        </div>
+                    </div>
+
+                    <p style="font-size:0.6em; margin:0;">TOKEN DE RESGATE:</p>
                     <strong style="font-size:2.2em; color:var(--primaria);">#${token}</strong>
-                    
-                    <p style="font-size:1em; color:red; font-weight:bold; margin-top:5px; display:inline-block; transition: 0.3s;" id="relogio-vivo">
-                        ${new Date().toLocaleTimeString('pt-BR')}
-                    </p>
                 </div>
 
-                <div style="text-align:left; background:#f9f9f9; padding:8px; border-radius:8px; font-size:0.7em; margin-bottom:15px;">
+                <div style="text-align:left; background:#f9f9f9; padding:8px; border-radius:8px; font-size:0.75em; margin-bottom:10px;">
                     <strong>PEDIDO:</strong> ${resumo}
                 </div>
 
-                <p style="font-size:0.55em; color:#d32f2f; font-weight:bold;">⚠️ PROIBIDO PRINT. MOSTRAR COMPROVANTE DO PIX NO NOME ACIMA.</p>
+                <p style="font-size:0.5em; color:#d32f2f; font-weight:bold;">⚠️ PROIBIDO PRINT. O VOLUNTÁRIO CONFERE A HORA DO PIX.</p>
                 
-                <button id="btn-baixa" onclick="darBaixa()" style="background:#d32f2f; color:white; width:100%; padding:18px; border:none; border-radius:10px; font-family:'Patua One'; font-size:1em; margin-top:10px; cursor:pointer;">
-                    CONFIRMAR ENTREGA (BALCÃO)
+                <button id="btn-baixa" onclick="darBaixa()" style="background:#d32f2f; color:white; width:100%; padding:18px; border:none; border-radius:10px; font-family:'Patua One'; cursor:pointer; margin-top:10px;">
+                    CONFIRMAR ENTREGA
                 </button>
             </div>
         `;
@@ -347,9 +356,8 @@ function finalizarPedido() {
                 el.style.opacity = (el.style.opacity == "0.5" ? "1" : "0.5");
             }
         }, 1000);
-    }, 2000);
+    }, 1500);
 }
-
 function darBaixa() {
     if(confirm("Confirmar entrega dos produtos?")) {
         document.getElementById('comprovante-area').innerHTML = `
