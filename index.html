@@ -18,15 +18,34 @@
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        body { 
-            font-family: 'Patua One', cursive; 
-            background-color: var(--fundo);
-            background-image: radial-gradient(var(--detalhe) 0.5px, transparent 0.5px);
-            background-size: 20px 20px;
-            margin: 0; padding: 0; text-transform: uppercase;
-            color: var(--texto); overflow-x: hidden;
-        }
-
+        body {
+    font-family: 'Patua One', cursive;
+    background-color: #fcf4dd;
+    margin: 0;
+    padding: 0;
+    text-transform: uppercase;
+    color: var(--texto);
+    overflow-x: hidden;
+}
+body::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    /* Um brilho quente que vem de baixo */
+    background: radial-gradient(circle at bottom, rgba(255, 140, 0, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+body::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at bottom, rgba(255, 140, 0, 0.2) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+}
         /* TELA DE BOAS-VINDAS */
         #welcome-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -125,11 +144,53 @@
 </head>
 <body>
 
-<div id="welcome-screen">
-    <h1 style="color: white; font-size: 2em; padding: 0 20px;">🔥 ARRAIÁ DA 🔥<br>SÃO SEBASTIÃO</h1>
-    <p style="color: var(--amarelo); letter-spacing: 2px;">GAMA - DF</p>
-    <button class="btn-entrar" onclick="entrarNoSite()">VER CARDÁPIO COMPLETO</button>
+<div id="welcome-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primaria); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; z-index: 5000; overflow-y: auto; padding: 20px 0;">
+    
+    <h1 style="color: white; font-size: 1.8em; text-align: center; margin-top: 20px;">🔥 ARRAIÁ DA 🔥 <br>SÃO SEBASTIÃO</h1>
+    <p style="color: var(--amarelo); letter-spacing: 2px; margin-bottom: 30px;">GAMA - DF</p>
+
+    <div style="width: 90%; max-width: 400px; margin-bottom: 15px;">
+        <button class="btn-entrar" onclick="entrarNoSite()" style="width: 100%; padding: 20px; font-size: 1.2em; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            👉 VER CARDÁPIO COMPLETO
+        </button>
+    </div>
+
+    <div style="width: 90%; max-width: 400px; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.2); text-align: center;">
+        <strong style="color: var(--amarelo); display: block; margin-bottom: 5px; font-size: 0.9em;">📅 QUANDO?</strong>
+        <p style="color: white; font-size: 0.85em; margin: 0;">Sábados e Domingos de Junho<br>A partir das 19h</p>
+    </div>
+
+    <div style="width: 90%; max-width: 400px; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.2); text-align: center;">
+        <strong style="color: var(--amarelo); display: block; margin-bottom: 5px; font-size: 0.9em;">📍 LOCALIZAÇÃO</strong>
+        <p style="color: white; font-size: 0.85em; margin-bottom: 10px;">Paróquia São Sebastião - Setor Sul</p>
+        <a href="https://www.google.com/maps/search/?api=1&query=Paroquia+Sao+Sebastiao+Gama+DF" target="_blank" style="display: inline-block; background: white; color: var(--primaria); padding: 8px 15px; border-radius: 20px; text-decoration: none; font-weight: bold; font-size: 0.8em;">
+            🗺️ ABRIR NO GOOGLE MAPS
+        </a>
+    </div>
+
+    <div style="width: 90%; max-width: 400px; background: #27ae60; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.2);">
+        <p style="color: white; font-size: 0.85em; margin: 0; font-weight: bold;">✅ ACEITAMOS PIX, CARTÃO E DINHEIRO</p>
+    </div>
+
+    <p style="color: rgba(255,255,255,0.5); font-size: 0.7em; margin-top: 30px;">Toque no botão acima para pedir</p>
 </div>
+<div style="display: flex; justify-content: space-around; padding: 10px 0; background: var(--primaria); overflow: hidden; border-bottom: 2px solid var(--amarelo);">
+    <div style="width: 20px; height: 30px; background: #e74c3c; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 50% 80%, 0% 100%);"></div>
+    <div style="width: 20px; height: 30px; background: #f1c40f; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 50% 80%, 0% 100%);"></div>
+    <div style="width: 20px; height: 30px; background: #3498db; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 50% 80%, 0% 100%);"></div>
+    <div style="width: 20px; height: 30px; background: #2ecc71; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 50% 80%, 0% 100%);"></div>
+    <div style="width: 20px; height: 30px; background: #e67e22; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 50% 80%, 0% 100%);"></div>
+</div>
+
+<section style="padding: 25px 15px; text-align: center; background: #fff; margin: 15px; border-radius: 15px; border: 2px solid var(--amarelo); box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h2 style="font-family: 'Patua One'; color: var(--primaria); font-size: 1.5em; margin-bottom: 10px;">🔥 Nossa História🔥</h2>
+    <p style="font-size: 0.85em; line-height: 1.4; color: #444; text-transform: none;">
+        O Arraiá de São Sebastião é uma tradição de mais de 20 anos no Gama. 
+        Um momento de fé, união e a melhor gastronomia típica da nossa região!
+    </p>
+    <div style="margin-top: 10px; font-size: 1.2em;">🌽 ✨ 🍿✨ 🍿 🌽</div>
+</section>
+
 
 <button class="btn-voltar" id="back-btn" onclick="voltarParaCapa()">←</button>
 
@@ -174,11 +235,6 @@
         <div class="card"> <div class="info"><h3>CORREIO ELEGANTE</h3><p>Envie um recado para alguém</p><span class="preco">R$ 3,00</span></div> <button class="btn-add" onclick="add('CORREIO', 3, this)">ADD</button> </div>
     </div>
 
-    <div style="background: var(--branco); border: 2px dashed var(--primaria); padding: 20px; border-radius: 15px; margin: 30px 0; text-align: center;">
-        <h3 style="color: var(--primaria); margin: 0 0 10px;">NOSSA HISTÓRIA</h3>
-        <p style="text-transform: none; font-size: 0.8em; color: #555; line-height: 1.5;">O Arraiá de São Sebastião é uma tradição de mais de 20 anos no Gama/DF. Toda a arrecadação é revertida para os projetos sociais e manutenção da nossa Paróquia. Participe!</p>
-    </div>
-</div>
 
 <div id="cart-floating" onclick="toggleCart()">
     <span id="cart-count" style="font-size: 1.8em;">0</span>
@@ -282,104 +338,127 @@ function toggleCart() {
     modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
 }
 
-function closeCart(e) { 
-    if(e.target.id === 'modal-cart') toggleCart(); 
-}
-
-function copiarPix() {
-    const chave = "paroquia.gama@pix.com.br";
-    navigator.clipboard.writeText(chave).then(() => {
-        alert("✅ Chave PIX copiada!");
-    });
-}
-
 function finalizarPedido() {
     if(carrinho.length === 0) return alert("Adicione itens primeiro!");
     
     const nomeFiel = prompt("Digite seu NOME:");
     if(!nomeFiel || nomeFiel.length < 3) return alert("Nome obrigatório!");
 
-    const horaPix = prompt("Digite a HORA que aparece no comprovante PIX (Ex: 20:45):");
-    if(!horaPix) return alert("A hora do comprovante é obrigatória!");
+    const horaPix = prompt("Digite a HORA do comprovante (Ex: 20:45):");
+    if(!horaPix) return alert("Hora obrigatória!");
 
     const modalContent = document.querySelector('.modal-content');
-    modalContent.innerHTML = `
-        <div style="text-align:center; padding: 40px 0;">
-            <div style="border: 6px solid #f3f3f3; border-top: 6px solid var(--verde); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
-            <p style="font-family:'Patua One'; color: var(--primaria);">CONFERINDO HORÁRIOS...</p>
-        </div>
-    `;
+    if(!modalContent) return;
+    
+    modalContent.innerHTML = `<div style="text-align:center; padding: 40px 0;"><p>GERANDO TICKETS POR BARRACA...</p></div>`;
 
     setTimeout(() => {
         const token = Math.floor(1000 + Math.random() * 9000);
-        const resumo = carrinho.map(i => i.nome).join(', ');
+        let listaItensHTML = "";
+        
+        carrinho.forEach((item, index) => {
+            listaItensHTML += `
+                <div id="item-entrega-${index}" style="display:flex; justify-content:space-between; align-items:center; background:white; padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid #ddd; text-transform:none;">
+                    <div style="text-align:left;">
+                        <strong style="font-size:0.9em; color:#333;">${item.nome}</strong>
+                        <p style="font-size:0.6em; margin:0; color:#27ae60; font-weight:bold;">PENDENTE</p>
+                    </div>
+                    <button onclick="darBaixaItem(${index}, '${item.nome}')" style="background:#27ae60; color:white; border:none; padding:8px 12px; border-radius:6px; font-size:0.7em; cursor:pointer; font-weight:bold;">
+                        ENTREGAR
+                    </button>
+                </div>
+            `;
+        });
 
         modalContent.innerHTML = `
-            <div id="comprovante-area" style="text-align:center; animation: fadeIn 0.5s;">
-                <h2 style="color:var(--verde); font-size:1.1em;">TICKET AUTENTICADO</h2>
-                
-                <div style="background:#fff7e6; border: 2px dashed var(--amarelo); padding:15px; border-radius:12px; margin-bottom:15px;">
-                    <p style="font-size:0.65em; color:#666; margin:0;">RESPONSÁVEL:</p>
-                    <strong style="font-size:1.1em; color:var(--primaria); display:block; margin-bottom:5px;">${nomeFiel.toUpperCase()}</strong>
-                    
-                    <div style="display:flex; justify-content:space-around; background:#fff; padding:5px; border-radius:8px; margin-bottom:10px; border:1px solid #ddd;">
-                        <div>
-                            <p style="font-size:0.5em; margin:0;">HORA NO PIX</p>
-                            <strong style="color:var(--verde);">${horaPix}</strong>
-                        </div>
-                        <div style="border-left:1px solid #ddd; padding-left:10px;">
-                            <p style="font-size:0.5em; margin:0;">AGORA (VIVO)</p>
-                            <strong style="color:red;" id="relogio-vivo">${new Date().toLocaleTimeString('pt-BR')}</strong>
-                        </div>
+            <div id="ticket-multibarraca" style="text-align:center; animation: fadeIn 0.5s;">
+                <h2 style="color:var(--primaria); font-size:1.1em; margin-bottom:5px;">COMPROVANTE DE RETIRADA</h2>
+                <div style="background:#fff7e6; border: 2px dashed var(--amarelo); padding:12px; border-radius:12px; margin-bottom:15px;">
+                    <strong style="font-size:1.1em; color:var(--primaria);">${nomeFiel.toUpperCase()}</strong>
+                    <div style="display:flex; justify-content:space-around; margin:10px 0; font-size:0.8em; color:#333;">
+                        <span>PIX: <strong>${horaPix}</strong></span>
+                        <span style="border-left:1px solid #ddd; padding-left:10px;">AGORA: <strong id="relogio-vivo" style="color:red;">--:--</strong></span>
                     </div>
-
-                    <p style="font-size:0.6em; margin:0;">TOKEN DE RESGATE:</p>
-                    <strong style="font-size:2.2em; color:var(--primaria);">#${token}</strong>
+                    <p style="font-size:0.6em; margin:0; color:#666;">TOKEN: <strong>#${token}</strong></p>
                 </div>
-
-                <div style="text-align:left; background:#f9f9f9; padding:8px; border-radius:8px; font-size:0.75em; margin-bottom:10px;">
-                    <strong>PEDIDO:</strong> ${resumo}
+                <div style="background:#f0f0f0; padding:10px; border-radius:12px;">
+                    ${listaItensHTML}
                 </div>
-
-                <p style="font-size:0.5em; color:#d32f2f; font-weight:bold;">⚠️ PROIBIDO PRINT. O VOLUNTÁRIO CONFERE A HORA DO PIX.</p>
-                
-                <button id="btn-baixa" onclick="darBaixa()" style="background:#d32f2f; color:white; width:100%; padding:18px; border:none; border-radius:10px; font-family:'Patua One'; cursor:pointer; margin-top:10px;">
-                    CONFIRMAR ENTREGA
-                </button>
+                <button onclick="location.reload()" style="margin-top:15px; background:none; border:none; color:#666; font-size:0.7em; text-decoration:underline; cursor:pointer;">Fazer novo pedido</button>
             </div>
         `;
 
         setInterval(() => {
             const el = document.getElementById('relogio-vivo');
-            if(el) {
-                el.innerText = new Date().toLocaleTimeString('pt-BR');
-                el.style.opacity = (el.style.opacity == "0.5" ? "1" : "0.5");
-            }
+            if(el) el.innerText = new Date().toLocaleTimeString('pt-BR');
         }, 1000);
-    }, 1500);
+    }, 800);
 }
-function darBaixa() {
-    if(confirm("Confirmar entrega dos produtos?")) {
-        document.getElementById('comprovante-area').innerHTML = `
-            <div style="padding:40px 10px; color:white; background:#333; border-radius:15px; text-align:center;">
-                <h1 style="font-size:2em;">✅</h1><h2>PEDIDO ENTREGUE</h2>
-                <button onclick="location.reload()" style="background:var(--amarelo); border:none; padding:10px; border-radius:5px; margin-top:20px; cursor:pointer;">NOVO PEDIDO</button>
-            </div>
-        `;
+
+function darBaixaItem(index, nomeItem) {
+    if(confirm(`Confirmar entrega de: ${nomeItem}?`)) {
+        const divItem = document.getElementById(`item-entrega-${index}`);
+        if(divItem) {
+            divItem.style.background = "#e0e0e0";
+            divItem.style.opacity = "0.6";
+            const texto = divItem.querySelector('strong');
+            if(texto) texto.style.textDecoration = "line-through";
+            const status = divItem.querySelector('p');
+            if(status) {
+                status.innerText = "ENTREGUE ✓";
+                status.style.color = "#666";
+            }
+            const btn = divItem.querySelector('button');
+            if(btn) btn.remove();
+
+            // VERIFICAÇÃO DE ÚLTIMO ITEM
+            const botoesRestantes = document.querySelectorAll('#ticket-multibarraca button');
+            // Se restou apenas 1 botão (que é o de "Fazer novo pedido"), significa que os de entrega acabaram
+            if(botoesRestantes.length <= 1) {
+                const areaTicket = document.getElementById('ticket-multibarraca');
+                const agradecimento = document.createElement("p");
+                agradecimento.innerHTML = "<br><strong>Obrigado por comparecer ao Arraiá da São Sebastião!</strong>";
+                agradecimento.style.color = "var(--primaria)";
+                agradecimento.style.fontSize = "0.9em";
+                agradecimento.style.marginTop = "15px";
+                agradecimento.style.animation = "fadeIn 1s";
+                
+                // Insere a frase antes do botão de novo pedido
+                areaTicket.insertBefore(agradecimento, areaTicket.lastElementChild);
+            }
+        }
     }
 }
-
+// Efeito de fagulhas subindo apenas na tela inicial
 setInterval(() => {
-    const f = document.createElement("div");
-    f.className = "fagulha";
-    let tam = Math.random() * 8 + 4 + "px";
-    f.style.width = tam; f.style.height = tam;
-    f.style.left = Math.random() * 100 + "vw";
-    f.style.animationDuration = Math.random() * 3 + 2 + "s";
-    document.body.appendChild(f);
-    setTimeout(() => f.remove(), 4500);
-}, 500);
-</script>
+    const screen = document.getElementById('welcome-screen');
+    // Só cria fagulhas se a tela de boas-vindas estiver visível
+    if (screen && screen.style.display !== "none") {
+        const f = document.createElement("div");
+        f.style.position = "absolute";
+        f.style.background = "var(--amarelo)";
+        f.style.width = Math.random() * 4 + 2 + "px";
+        f.style.height = f.style.width;
+        f.style.bottom = "0";
+        f.style.left = Math.random() * 100 + "vw";
+        f.style.borderRadius = "50%";
+        f.style.opacity = "0.8";
+        f.style.zIndex = "5001";
+        f.style.pointerEvents = "none";
+        f.style.transition = `transform ${Math.random() * 2 + 2}s linear, opacity 2s`;
+        
+        screen.appendChild(f);
+        
+        // Inicia o movimento de subir
+        setTimeout(() => {
+            f.style.transform = `translateY(-110vh) translateX(${Math.random() * 40 - 20}px)`;
+            f.style.opacity = "0";
+        }, 50);
 
+        // Remove do site para não ficar pesado
+        setTimeout(() => f.remove(), 4000);
+    }
+}, 400);
+</script>
 </body>
 </html>
