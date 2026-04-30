@@ -120,6 +120,26 @@
             cursor: pointer; margin-top: 15px;
         }
 
+        /* Estilo para múltiplos tickets */
+        .ticket-card {
+            background: #fffcf0;
+            border: 2px dashed #f1c40f;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 10px auto;
+            width: 280px;
+            display: inline-block;
+            vertical-align: top;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .tickets-container {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 10px;
+            scrollbar-width: none;
+        }
+
         .spinner {
             width: 50px; height: 50px; border: 5px solid #f3f3f3;
             border-top: 5px solid var(--primary); border-radius: 50%;
@@ -186,7 +206,6 @@ let cart = [];
 let totalValue = 0;
 let productsData = [];
 
-// INICIALIZAÇÃO E RENDERIZAÇÃO
 async function init() {
     const { data, error } = await _supabase.from('produtos').select('*').order('nome');
     if (error) return console.error(error);
@@ -207,7 +226,7 @@ function renderProducts(cat) {
                     <p>Qualidade Garantida</p>
                     <span class="price-tag">R$ ${p.preco.toFixed(2).replace('.', ',')}</span>
                 </div>
-                <button class="btn-add-circle" onclick="addToCart('${p.nome}', ${p.preco})">+</button>
+                <button class="btn-add-circle" onclick="addToCart('${p.nome}', ${p.preco}, '${p.categoria}')">+</button>
             </div>
         `;
     });
@@ -221,8 +240,8 @@ function changeCategory(e, cat) {
     renderProducts(cat);
 }
 
-function addToCart(nome, preco) {
-    cart.push({ nome, preco });
+function addToCart(nome, preco, categoria) {
+    cart.push({ nome, preco, categoria });
     totalValue += preco;
     updateUI();
 }
@@ -266,74 +285,89 @@ function removeItem(idx) {
     openCheckout();
 }
 
-// LOGICA DE AUTOMAÇÃO E VIGILÂNCIA
+// NOVA LÓGICA DE PROCESSAMENTO (Múltiplos Itens)
 async function processOrder() {
     if (!cart.length) return;
     const btn = document.querySelector('.btn-finish');
     btn.disabled = true;
-    btn.innerText = "PROCESSANDO...";
+    btn.innerText = "GERANDO TICKETS...";
 
-    const tokenAleatorio = Math.floor(1000 + Math.random() * 9000);
-    const itensStr = cart.map(i => i.nome).join(', ');
+    // CRIANDO CADA ITEM INDIVIDUALMENTE COM CATEGORIA
+    const itensParaInserir = cart.map(item => ({
+        cliente: "APP_USER",
+        itens: item.nome,
+        valor: item.preco,
+        status: 'PENDENTE',
+        token: Math.floor(1000 + Math.random() * 9000),
+        categoria: item.categoria || 'geral' // GARANTE QUE NÃO FICA NULL
+    }));
 
     try {
-        // Envia o pedido e retorna o ID para vigilância
-        const { data, error } = await _supabase.from('vendas').insert([
-            { cliente: "APP_USER", itens: itensStr, valor: totalValue, status: 'PENDENTE', token: tokenAleatorio }
-        ]).select();
-
+        const { data, error } = await _supabase.from('vendas').insert(itensParaInserir).select();
         if (error) throw error;
-        const vendaInserida = data[0];
 
-        // Oculta rodapé e mostra carregamento
         document.getElementById('footer-checkout').style.display = 'none';
         document.getElementById('checkout-items').innerHTML = `
             <div style="text-align:center; padding: 40px 0;">
                 <div class="spinner"></div>
-                <h2 style="color:var(--primary); font-weight:800;">AGUARDANDO PIX</h2>
-                <p style="color:#666; font-size:0.9rem; padding:0 20px;">O QR Code de retirada aparecerá aqui assim que confirmarmos o pagamento.</p>
-                <div style="background:#f8f9fa; margin:20px; padding:20px; border-radius:15px; border:1px solid #eee;">
-                    <span style="font-size:0.7rem; color:#999; font-weight:700;">CHAVE PIX (CNPJ)</span><br>
-                    <strong style="font-size:1rem;">00.000.000/0001-00</strong><br>
-                    <div style="margin-top:10px; color:var(--primary); font-weight:800;">Valor: R$ ${totalValue.toFixed(2).replace('.', ',')}</div>
-                </div>
-                <p style="font-size:0.75rem; color:#999;">A atualização é automática. Não feche esta tela.</p>
+                <h2 style="color:var(--primary); font-weight:800;">AGUARDANDO PAGAMENTO</h2>
+                <p>Valor Total: R$ ${totalValue.toFixed(2)}</p>
             </div>
         `;
 
-        iniciarVigilancia(vendaInserida.id, tokenAleatorio);
+        iniciarVigilancia(data[0].id, data); 
     } catch (e) {
-        console.error(e);
-        alert("Erro ao conectar. Tente novamente.");
+        alert("Erro ao salvar: " + e.message);
         btn.disabled = false;
-        btn.innerText = "FINALIZAR PEDIDO";
     }
 }
 
-function iniciarVigilancia(idReal, tokenVisual) {
+function iniciarVigilancia(idReferencia, todosOsDados) {
     const checkStatus = setInterval(async () => {
-        const { data } = await _supabase.from('vendas').select('status').eq('id', idReal).single();
+        const { data } = await _supabase.from('vendas').select('status').eq('id', idReferencia).single();
         if (data && data.status === 'PAGO') {
             clearInterval(checkStatus);
-            mostrarTicketSucesso(tokenVisual);
+            // Agora busca todos os tokens atualizados do banco para garantir
+            mostrarTicketsSucesso(todosOsDados);
         }
     }, 3000);
 }
 
-function mostrarTicketSucesso(token) {
-    document.getElementById('checkout-items').innerHTML = `
-        <div style="text-align:center; padding: 30px 0;">
-            <div style="font-size:4rem;">✅</div>
-            <h2 style="color:var(--success); font-weight:800;">PAGO COM SUCESSO!</h2>
-            <div style="background:#fffcf0; border:3px dashed #f1c40f; padding:20px; border-radius:20px; display:inline-block; margin:20px 0;">
-                <div id="qrcode-space" style="background:white; padding:10px; border-radius:10px; margin-bottom:10px;"></div>
-                <div style="font-size:2.5rem; font-weight:900; color:var(--primary);">#${token}</div>
+function mostrarTicketsSucesso(itensVendidos) {
+    let ticketsHTML = `<div class="tickets-container">`;
+    
+    itensVendidos.forEach((item, index) => {
+        ticketsHTML += `
+            <div class="ticket-card">
+                <div style="font-weight:800; color:var(--primary); font-size:1.2rem; margin-bottom:5px;">${item.itens}</div>
+                <div style="font-size:0.7rem; color:var(--text-sub); margin-bottom:15px;">BARRACA: ${item.categoria.toUpperCase()}</div>
+                <div id="qrcode-${index}" style="background:white; padding:10px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:center;"></div>
+                <div style="font-size:2rem; font-weight:900; color:var(--text-main);">#${item.token}</div>
+                <div style="font-size:0.6rem; color:var(--success); font-weight:bold; margin-top:5px;">✓ PAGO - APRESENTE NA BARRACA</div>
             </div>
-            <p style="color:#666; font-size:0.9rem; padding:0 20px;">Apresente este QR Code para retirar seu pedido.</p>
-            <button onclick="location.reload()" style="background:#f0f0f0; border:none; width:80%; padding:15px; border-radius:12px; font-weight:bold; margin-top:20px; cursor:pointer;">NOVO PEDIDO</button>
+        `;
+    });
+
+    ticketsHTML += `</div>`;
+
+    document.getElementById('checkout-items').innerHTML = `
+        <div style="text-align:center; padding: 20px 0;">
+            <div style="font-size:3rem;">🙏</div>
+            <h2 style="color:var(--success); font-weight:800; margin-bottom:5px;">PEDIDO CONFIRMADO!</h2>
+            <p style="font-size:0.8rem; color:#666;">Deslize para o lado para ver todos os seus tickets:</p>
+            ${ticketsHTML}
+            <button onclick="location.reload()" style="background:#f0f0f0; border:none; width:80%; padding:15px; border-radius:12px; font-weight:bold; margin-top:20px;">VOLTAR AO INÍCIO</button>
         </div>
     `;
-    new QRCode(document.getElementById("qrcode-space"), { text: `VALIDAR_PEDIDO_${token}`, width: 140, height: 140 });
+
+    // Gerar os QR Codes para cada ticket
+    itensVendidos.forEach((item, index) => {
+        new QRCode(document.getElementById(`qrcode-${index}`), {
+            text: `VALIDAR_${item.id}_${item.token}`, // O Validador lerá o ID da venda e o Token
+            width: 130,
+            height: 130
+        });
+    });
 }
 
 init();
