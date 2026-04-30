@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VALIDADOR - ARRAIÁ</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Montserrat', sans-serif; background: #1a1a1a; color: white; margin: 0; text-align: center; }
+        #reader { width: 100%; max-width: 500px; margin: 0 auto; background: #000; }
+        .status-card { margin: 20px; padding: 20px; border-radius: 15px; display: none; }
+        .success { background: #27ae60; }
+        .error { background: #ea1d2c; }
+        .info { background: #2980b9; }
+        button { background: white; color: black; border: none; padding: 15px 30px; border-radius: 10px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h2 style="margin-top:20px;">VALIDADOR DE TICKETS</h2>
+    <div id="reader"></div>
+    
+    <div id="result-card" class="status-card">
+        <h3 id="res-item">---</h3>
+        <p id="res-status">Aguardando leitura...</p>
+        <div id="action-area"></div>
+    </div>
+
+<script>
+const SUPABASE_URL = "https://ttmwwvqowcuxmtdwlyms.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0bXd3dnFvd2N1eG10ZHdseW1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczOTc5NjcsImV4cCI6MjA5Mjk3Mzk2N30.G88ljgeVsjapjmT2KhboaQiAPtwxhde35Cgxis7sc4w";
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const html5QrCode = new Html5Qrcode("reader");
+
+function startScanner() {
+    html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess
+    );
+}
+
+async function onScanSuccess(decodedText) {
+    // Formato do QR: VALIDAR_ID_TOKEN
+    const partes = decodedText.split('_');
+    if (partes[0] !== 'VALIDAR') return;
+
+    html5QrCode.pause(); // Pausa para processar
+    const idVenda = partes[1];
+    const tokenVenda = partes[2];
+
+    const card = document.getElementById('result-card');
+    card.style.display = 'block';
+    card.className = 'status-card info';
+    document.getElementById('res-item').innerText = "Consultando...";
+
+    const { data, error } = await _supabase.from('vendas').select('*').eq('id', idVenda).single();
+
+    if (error || !data || data.token != tokenVenda) {
+        showError("TICKET INVÁLIDO OU NÃO ENCONTRADO");
+    } else if (data.status === 'ENTREGUE') {
+        showError("ESTE TICKET JÁ FOI ENTREGUE!");
+    } else if (data.status === 'PENDENTE') {
+        showError("PAGAMENTO NÃO CONFIRMADO!");
+    } else {
+        showSuccess(data);
+    }
+}
+
+function showSuccess(venda) {
+    const card = document.getElementById('result-card');
+    card.className = 'status-card success';
+    document.getElementById('res-item').innerText = venda.itens;
+    document.getElementById('res-status').innerText = `BARRACA: ${venda.categoria.toUpperCase()}\nSTATUS: PAGO`;
+    document.getElementById('action-area').innerHTML = `<button onclick="entregar(${venda.id})">CONFIRMAR ENTREGA</button>`;
+}
+
+function showError(msg) {
+    const card = document.getElementById('result-card');
+    card.className = 'status-card error';
+    document.getElementById('res-item').innerText = "ERRO";
+    document.getElementById('res-status').innerText = msg;
+    document.getElementById('action-area').innerHTML = `<button onclick="resetScanner()">TENTAR NOVAMENTE</button>`;
+}
+
+async function entregar(id) {
+    const { error } = await _supabase.from('vendas').update({ status: 'ENTREGUE' }).eq('id', id);
+    if (!error) {
+        alert("ENTREGA CONFIRMADA!");
+        resetScanner();
+    }
+}
+
+function resetScanner() {
+    document.getElementById('result-card').style.display = 'none';
+    html5QrCode.resume();
+}
+
+startScanner();
+</script>
+</body>
+</html>
