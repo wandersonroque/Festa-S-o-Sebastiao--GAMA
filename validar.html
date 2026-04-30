@@ -2,91 +2,103 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validador - Facilita Pedidos</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; text-align: center; margin: 0; padding: 20px; }
-        #reader { width: 100%; max-width: 500px; margin: 20px auto; border: 2px solid #e63946; border-radius: 15px; overflow: hidden; background: #000; }
-        .result-card { display: none; background: white; color: #333; border-radius: 15px; padding: 20px; margin-top: 20px; }
-        .btn { background: #2ecc71; color: white; border: none; padding: 15px; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        body { font-family: 'Montserrat', sans-serif; background: #1a1a1a; color: white; margin: 0; text-align: center; }
+        #reader { width: 100%; max-width: 500px; margin: 0 auto; border-radius: 20px; overflow: hidden; }
+        .status-container { padding: 20px; margin-top: 20px; }
+        .msg { padding: 15px; border-radius: 10px; font-weight: bold; margin-bottom: 10px; display: none; }
+        .success { background: #27ae60; color: white; display: block; }
+        .error { background: #ea1d2c; color: white; display: block; }
+        .loading { background: #f1c40f; color: black; display: block; }
+        #btn-scan { background: #ea1d2c; color: white; border: none; padding: 15px 30px; border-radius: 50px; font-weight: 800; cursor: pointer; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <h2 style="color: #e63946;">VALIDADOR DE TICKETS</h2>
+
+    <h2 style="margin-top: 30px;">VALIDADOR PRO</h2>
+    <p id="camera-status">Aguardando início...</p>
+
     <div id="reader"></div>
-    <div id="result-card" class="result-card">
-        <h2 id="ticket-item"></h2>
-        <p id="ticket-info"></p>
-        <div id="action-area"></div>
+
+    <div class="status-container" id="status-box">
+        <!-- Mensagens de feedback aparecerão aqui -->
     </div>
 
-    <script>
-        // CONFIGURAÇÕES DO SUPABASE
-        const SB_URL = "https://ttmwwvqowcuxmtdwlyms.supabase.co"; 
-        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0bXd3dnFvd2N1eG10ZHdseW1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczOTc5NjcsImV4cCI6MjA5Mjk3Mzk2N30.G88ljgeVsjapjmT2KhboaQiAPtwxhde35Cgxis7sc4w";
-        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+    <button id="btn-scan" onclick="startScanner()">LIGAR CÂMERA</button>
 
-        const html5QrCode = new Html5Qrcode("reader");
+<script>
+    const SUPABASE_URL = "https://ttmwwvqowcuxmtdwlyms.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0bXd3dnFvd2N1eG10ZHdseW1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczOTc5NjcsImV4cCI6MjA5Mjk3Mzk2N30.G88ljgeVsjapjmT2KhboaQiAPtwxhde35Cgxis7sc4w";
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function startScanner() {
-            try {
-                await html5QrCode.start(
-                    { facingMode: "environment" },
-                    { fps: 10, qrbox: { width: 250, height: 250 } },
-                    onScanSuccess
-                );
-            } catch (err) {
-                console.error(err);
-                // Se falhar o modo automático, tenta listar as câmeras
-                const devices = await Html5Qrcode.getCameras();
-                if (devices.length > 0) {
-                    await html5QrCode.start(devices[devices.length - 1].id, { fps: 10, qrbox: 250 }, onScanSuccess);
-                }
-            }
+    let html5QrCode;
+    let isProcessing = false;
+
+    async function startScanner() {
+        document.getElementById('btn-scan').style.display = 'none';
+        document.getElementById('camera-status').innerText = "Câmera Ativa";
+        
+        html5QrCode = new Html5Qrcode("reader");
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+    }
+
+    async function onScanSuccess(decodedText) {
+        // Impede leituras múltiplas enquanto processa a anterior
+        if (isProcessing) return;
+        isProcessing = true;
+
+        showFeedback("PROCESSANDO...", "loading");
+
+        try {
+            // O código lido deve ser algo como: VALIDAR_ID_TOKEN
+            const partes = decodedText.split('_');
+            if (partes[0] !== "VALIDAR") throw new Error("QR CODE INVÁLIDO");
+
+            const ticketId = partes[1];
+            const token = partes[2];
+
+            // 1. Verifica se o ticket existe e se já foi entregue
+            const { data, error } = await _supabase
+                .from('vendas')
+                .select('status, itens')
+                .eq('id', ticketId)
+                .single();
+
+            if (error || !data) throw new Error("TICKET NÃO ENCONTRADO");
+            if (data.status === 'ENTREGUE') throw new Error(`JÁ ENTREGUE: ${data.itens}`);
+
+            // 2. Atualiza para ENTREGUE
+            const { error: updateError } = await _supabase
+                .from('vendas')
+                .update({ status: 'ENTREGUE' })
+                .eq('id', ticketId);
+
+            if (updateError) throw new Error("ERRO AO VALIDAR");
+
+            showFeedback(`SUCESSO: ${data.itens}`, "success");
+
+        } catch (e) {
+            showFeedback(e.message, "error");
         }
 
-        function onScanSuccess(decodedText) {
-            html5QrCode.pause();
-            processTicket(decodedText);
-        }
+        // Aguarda 3 segundos para liberar a próxima leitura (tempo para ver a mensagem e tirar o celular da frente)
+        setTimeout(() => {
+            isProcessing = false;
+            document.getElementById('status-box').innerHTML = ""; // Limpa a mensagem
+        }, 3000);
+    }
 
-        async function processTicket(data) {
-            const parts = data.split('_');
-            const id = parts[1];
-            const token = parts[2];
-            
-            const card = document.getElementById('result-card');
-            card.style.display = 'block';
-            document.getElementById('ticket-item').innerText = "Buscando...";
-
-            const { data: venda, error } = await _supabase.from('vendas').select('*').eq('id', id).eq('token', token).single();
-
-            if (venda) {
-                document.getElementById('ticket-item').innerText = venda.itens;
-                document.getElementById('ticket-info').innerText = `Status: ${venda.status}`;
-                document.getElementById('action-area').innerHTML = venda.status === 'PAGO' 
-                    ? `<button class="btn" onclick="entregar(${id})">CONFIRMAR ENTREGA</button>`
-                    : `<button class="btn" style="background:#666" onclick="reset()">VOLTAR</button>`;
-            } else {
-                document.getElementById('ticket-item').innerText = "TICKET INVÁLIDO";
-                document.getElementById('action-area').innerHTML = `<button class="btn" onclick="reset()">TENTAR NOVAMENTE</button>`;
-            }
-        }
-
-        async function entregar(id) {
-            await _supabase.from('vendas').update({ status: 'ENTREGUE' }).eq('id', id);
-            alert("Entregue!");
-            reset();
-        }
-
-        function reset() {
-            document.getElementById('result-card').style.display = 'none';
-            html5QrCode.resume();
-        }
-
-        startScanner();
-    </script>
+    function showFeedback(txt, tipo) {
+        const box = document.getElementById('status-box');
+        box.innerHTML = `<div class="msg ${tipo}">${txt}</div>`;
+    }
+</script>
 </body>
 </html>
