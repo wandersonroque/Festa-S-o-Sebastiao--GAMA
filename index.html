@@ -124,29 +124,32 @@
         
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f8f8f8; }
         
+        /* BOTÕES DO RODAPÉ */
         .btn-finish {
             background: var(--success); color: white; border: none; width: 100%;
-            padding: 22px; border-radius: 20px; font-weight: 800; font-size: 1.1rem;
-            cursor: pointer; margin-top: 15px;
+            padding: 18px; border-radius: 15px; font-weight: 800; font-size: 1.1rem;
+            cursor: pointer; transition: 0.2s;
         }
+        .btn-finish:active { transform: scale(0.98); background: #1e854a; }
 
-        /* ESTILO DO TICKET ATIVO */
+        .btn-add-more-footer {
+            background: #f0f0f0; color: var(--text-main); border: none; width: 100%;
+            padding: 14px; border-radius: 15px; font-weight: 700; font-size: 0.9rem;
+            cursor: pointer; margin-top: 12px; transition: 0.2s;
+        }
+        .btn-add-more-footer:active { background: #e0e0e0; }
+
+        .tickets-container { 
+            display: flex; overflow-x: auto; white-space: nowrap; 
+            padding: 10px 0 20px 0; gap: 15px; scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
         .ticket-card {
-            background: #fffcf0; border: 2px dashed #f1c40f; border-radius: 20px;
-            padding: 20px; margin: 10px auto; width: 280px; display: inline-block;
-            vertical-align: top; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            white-space: normal; transition: 0.3s;
+            flex: 0 0 280px; background: #fffcf0; border: 2px dashed #f1c40f; border-radius: 20px;
+            padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            white-space: normal; scroll-snap-align: center;
         }
-
-        /* ESTILO DO TICKET JÁ ENTREGUE (CINZA) */
-        .ticket-card.entregue {
-            background: #f0f0f0 !important;
-            border-color: #ccc !important;
-            filter: grayscale(1);
-            opacity: 0.8;
-        }
-
-        .tickets-container { overflow-x: auto; white-space: nowrap; padding: 10px; scrollbar-width: none; }
+        .ticket-card.entregue { background: #f0f0f0 !important; border-color: #ccc !important; filter: grayscale(1); opacity: 0.8; }
 
         .spinner {
             width: 50px; height: 50px; border: 5px solid #f3f3f3;
@@ -199,12 +202,17 @@
             <button onclick="closeCheckout()" style="background:#f0f0f0; border:none; width:35px; height:35px; border-radius:50%; font-weight:800;">✕</button>
         </div>
         <div class="checkout-body" id="checkout-items"></div>
-        <div id="footer-checkout" style="padding: 25px; border-top: 1px solid #f0f0f0;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: 800; font-size: 1.3rem;">
+        <div id="footer-checkout" style="padding: 20px 25px 30px; border-top: 1px solid #f0f0f0; background: #fff;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: 800; font-size: 1.3rem;">
                 <span>Total</span>
                 <span id="total-checkout" style="color:var(--success)">R$ 0,00</span>
             </div>
-            <button class="btn-finish" onclick="processOrder()">FINALIZAR PEDIDO</button>
+            
+            <!-- ÁREA DOS BOTÕES ATUALIZADA -->
+            <div id="action-buttons">
+                <button class="btn-finish" id="main-finish-btn" onclick="processOrder()">FINALIZAR PEDIDO</button>
+                <button class="btn-add-more-footer" onclick="closeCheckout()">+ ADICIONAR MAIS ITENS AO CARRINHO</button>
+            </div>
         </div>
     </div>
 
@@ -213,18 +221,19 @@ const SUPABASE_URL = "https://ttmwwvqowcuxmtdwlyms.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0bXd3dnFvd2N1eG10ZHdseW1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczOTc5NjcsImV4cCI6MjA5Mjk3Mzk2N30.G88ljgeVsjapjmT2KhboaQiAPtwxhde35Cgxis7sc4w";
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let cart = [];
-let totalValue = 0;
+let cart = JSON.parse(localStorage.getItem('cart_temporario') || "[]");
+let totalValue = cart.reduce((acc, item) => acc + item.preco, 0);
 let productsData = [];
 let checkStatusInterval = null;
 let securityInterval = null;
 
 async function init() {
     const { data, error } = await _supabase.from('produtos').select('*').order('nome');
-    if (error) return console.error(error);
+    if (error) return;
     productsData = data;
     renderProducts('comidas');
     verificarCompraExistente();
+    updateUI();
 }
 
 function renderProducts(cat) {
@@ -240,8 +249,7 @@ function renderProducts(cat) {
                     <span class="price-tag">R$ ${p.preco.toFixed(2).replace('.', ',')}</span>
                 </div>
                 <button class="btn-add-circle" onclick="addToCart('${p.nome}', ${p.preco}, '${p.categoria}')">+</button>
-            </div>
-        `;
+            </div>`;
     });
 }
 
@@ -256,6 +264,7 @@ function changeCategory(e, cat) {
 function addToCart(nome, preco, categoria) {
     cart.push({ nome, preco, categoria });
     totalValue += preco;
+    localStorage.setItem('cart_temporario', JSON.stringify(cart));
     updateUI();
 }
 
@@ -269,9 +278,15 @@ function updateUI() {
 
 function openCheckout() {
     const list = document.getElementById('checkout-items');
-    list.innerHTML = cart.length ? '' : '<p style="text-align:center; color:#999;">Nada por aqui ainda...</p>';
+    list.innerHTML = cart.length ? '' : '<p style="text-align:center; color:#999; margin-top:40px;">Seu carrinho está vazio.</p>';
     document.getElementById('footer-checkout').style.display = cart.length ? 'block' : 'none';
     
+    // Reseta botões para o estado inicial
+    document.getElementById('action-buttons').style.display = 'block';
+    const btnFinish = document.getElementById('main-finish-btn');
+    btnFinish.innerText = "FINALIZAR PEDIDO";
+    btnFinish.disabled = false;
+
     cart.forEach((item, idx) => {
         list.innerHTML += `
             <div class="item-row">
@@ -279,10 +294,10 @@ function openCheckout() {
                     <div style="font-weight:700;">${item.nome}</div>
                     <div style="color:var(--success); font-size:0.9rem; font-weight:800;">R$ ${item.preco.toFixed(2).replace('.', ',')}</div>
                 </div>
-                <button onclick="removeItem(${idx})" style="background:none; border:none; color:var(--primary); font-weight:700;">Remover</button>
-            </div>
-        `;
+                <button onclick="removeItem(${idx})" style="background:none; border:none; color:var(--primary); font-weight:700; cursor:pointer;">Remover</button>
+            </div>`;
     });
+
     document.getElementById('checkout-modal').classList.add('open');
     document.getElementById('overlay').style.display = 'block';
 }
@@ -291,22 +306,23 @@ function closeCheckout() {
     document.getElementById('checkout-modal').classList.remove('open');
     document.getElementById('overlay').style.display = 'none';
     if(checkStatusInterval) clearInterval(checkStatusInterval);
-    if(securityInterval) clearInterval(securityInterval);
 }
 
 function removeItem(idx) {
     totalValue -= cart[idx].preco;
     cart.splice(idx, 1);
+    localStorage.setItem('cart_temporario', JSON.stringify(cart));
     if (cart.length === 0) closeCheckout();
     else { updateUI(); openCheckout(); }
 }
 
 async function processOrder() {
     if (!cart.length) return;
-    const btn = document.querySelector('.btn-finish');
+    const btn = document.getElementById('main-finish-btn');
     btn.disabled = true;
     btn.innerText = "GERANDO PIX ÚNICO...";
-    const compraID = "COMPRA_" + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+    const compraID = "ID_" + Math.random().toString(36).substr(2, 9).toUpperCase();
     const itensParaInserir = cart.map(item => ({
         cliente: "APP_USER",
         itens: item.nome,
@@ -320,145 +336,127 @@ async function processOrder() {
     try {
         const { data, error } = await _supabase.from('vendas').insert(itensParaInserir).select();
         if (error) throw error;
-        localStorage.setItem('arraiá_ultima_compra', compraID);
+
+        let hist = JSON.parse(localStorage.getItem('arraiá_historico') || "[]");
+        hist.push(compraID);
+        localStorage.setItem('arraiá_historico', JSON.stringify(hist));
+        
         document.getElementById('tickets-float').style.display = 'block';
-        const totalPago = totalValue;
-        cart = []; totalValue = 0; updateUI();
-        mostrarTelaPagamento(totalPago);
-        iniciarVigilancia(data[0].id, data); 
+        mostrarTelaPagamento(totalValue, data[0].id, compraID);
+
     } catch (e) {
-        alert("Erro ao salvar: " + e.message);
+        alert("Erro: " + e.message);
         btn.disabled = false;
         btn.innerText = "FINALIZAR PEDIDO";
     }
 }
 
-function mostrarTelaPagamento(valor) {
-    document.getElementById('footer-checkout').style.display = 'none';
+function mostrarTelaPagamento(valor, idRef, compraID) {
+    // Esconde os botões de ação e mostra o aguardando pagamento
+    document.getElementById('action-buttons').style.display = 'none';
     document.getElementById('checkout-items').innerHTML = `
-        <div style="text-align:center; padding: 40px 0;">
+        <div style="text-align:center; padding: 20px 0;">
             <div class="spinner"></div>
-            <h2 style="color:var(--primary); font-weight:800;">AGUARDANDO PAGAMENTO</h2>
-            <div style="background:#f8f9fa; padding:20px; border-radius:15px; margin:20px 0; border: 2px dashed #ddd;">
+            <h2 style="color:var(--primary); font-weight:800; margin-bottom:10px;">AGUARDANDO PAGAMENTO</h2>
+            <div style="background:#f8f9fa; padding:20px; border-radius:15px; margin:10px 0; border: 2px dashed #ddd;">
                 <p style="font-size:0.8rem; color:#666; margin:0;">VALOR TOTAL DO PIX</p>
                 <h1 style="margin:5px 0; color:var(--success);">R$ ${valor.toFixed(2).replace('.', ',')}</h1>
             </div>
-            <p style="font-size:0.85rem; color:var(--text-sub);">O sistema liberará seus tickets automaticamente após a confirmação.</p>
-        </div>
-    `;
+            <p style="font-size:0.85rem; color:var(--text-sub); margin-bottom:20px;">Assim que o pagamento for confirmado, seus tickets aparecerão aqui.</p>
+            <button class="btn-add-more-footer" style="background:#fff; border:1px solid #ddd" onclick="closeCheckout()">+ ADICIONAR MAIS ITENS</button>
+        </div>`;
+    iniciarVigilancia(idRef);
 }
 
-function iniciarVigilancia(idReferencia, todosOsDados) {
+function iniciarVigilancia(idReferencia) {
     if(checkStatusInterval) clearInterval(checkStatusInterval);
     checkStatusInterval = setInterval(async () => {
         const { data } = await _supabase.from('vendas').select('status').eq('id', idReferencia).single();
         if (data && data.status === 'PAGO') {
             clearInterval(checkStatusInterval);
-            mostrarTicketsSucesso(todosOsDados);
+            limparCarrinhoAposSucesso();
+            recuperarMeusPedidos();
         }
     }, 3000);
 }
 
+function limparCarrinhoAposSucesso() {
+    cart = [];
+    totalValue = 0;
+    localStorage.removeItem('cart_temporario');
+    updateUI();
+}
+
 function mostrarTicketsSucesso(itensVendidos) {
+    itensVendidos.sort((a, b) => (a.status === 'PAGO' ? -1 : 1));
     let ticketsHTML = `<div class="tickets-container">`;
-    itensVendidos.forEach((item, index) => {
-        const isEntregue = item.status === 'ENTREGUE';
+    itensVendidos.forEach((item) => {
+        const entregue = item.status === 'ENTREGUE';
         ticketsHTML += `
-            <div class="ticket-card ${isEntregue ? 'entregue' : ''}" id="card-${item.id}">
+            <div class="ticket-card ${entregue ? 'entregue' : ''}" id="card-${item.id}">
                 <div style="font-weight:800; color:var(--primary); font-size:1.2rem; margin-bottom:5px;">${item.itens}</div>
                 <div style="font-size:0.7rem; color:var(--text-sub); margin-bottom:15px;">BARRACA: ${item.categoria.toUpperCase()}</div>
-                
-                <div id="area-qr-${item.id}" style="background:white; padding:10px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:center; min-height:150px; align-items:center;">
-                    ${isEntregue ? '<h2 style="color:red; font-weight:900;">PEDIDO ENTREGUE</h2>' : `<div id="qrcode-${index}"></div>`}
+                <div id="area-qr-${item.id}" style="background:white; padding:10px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:center; align-items:center; min-height:150px;">
+                    ${entregue ? '<h2 style="color:red; font-weight:900;">ENTREGUE</h2>' : `<div id="qrcode-${item.id}"></div>`}
                 </div>
-
                 <div style="font-size:2rem; font-weight:900; color:var(--text-main);">#${item.token}</div>
-                <div id="status-text-${item.id}" style="font-size:0.6rem; color:${isEntregue ? 'red' : 'var(--success)'}; font-weight:bold; margin-top:5px;">
-                    ${isEntregue ? '✕ TICKET JÁ UTILIZADO' : '✓ PAGO - APRESENTE NA BARRACA'}
+                <div style="font-size:0.6rem; color:${entregue?'red':'var(--success)'}; font-weight:bold; margin-top:5px;">
+                    ${entregue ? 'UTILIZADO' : 'APRESENTE NA BARRACA'}
                 </div>
-            </div>
-        `;
+            </div>`;
     });
     ticketsHTML += `</div>`;
 
+    document.getElementById('footer-checkout').style.display = 'none';
     document.getElementById('checkout-items').innerHTML = `
-        <div style="text-align:center; padding: 20px 0;">
-            <div style="font-size:3rem;">🙏</div>
-            <h2 style="color:var(--success); font-weight:800; margin-bottom:5px;">PAGAMENTO CONFIRMADO!</h2>
-            <p style="font-size:0.8rem; color:#666;">Apresente o QR Code na barraca:</p>
+        <div style="text-align:center; padding: 10px 0;">
+            <h2 style="color:var(--success); font-weight:800; margin-bottom:5px;">SEUS TICKETS</h2>
+            <p style="font-size:0.8rem; color:#666;">Arraste para o lado:</p>
             ${ticketsHTML}
-            <button onclick="limparEComprarDeNovo()" style="background:#f0f0f0; border:none; width:80%; padding:15px; border-radius:12px; font-weight:bold; margin-top:20px;">FAZER NOVA COMPRA</button>
-        </div>
-    `;
+            <button onclick="closeCheckout()" style="background:var(--primary); color:white; border:none; width:80%; padding:15px; border-radius:12px; font-weight:bold; margin-top:10px; cursor:pointer;">VOLTAR AO CARDÁPIO</button>
+        </div>`;
 
-    itensVendidos.forEach((item, index) => {
-        if(item.status !== 'ENTREGUE') {
-            new QRCode(document.getElementById(`qrcode-${index}`), {
-                text: `VALIDAR_${item.id}_${item.token}`,
-                width: 130, height: 130
-            });
+    itensVendidos.forEach((item) => {
+        if (item.status === 'PAGO') {
+            new QRCode(document.getElementById(`qrcode-${item.id}`), { text: `VALIDAR_${item.id}_${item.token}`, width: 130, height: 130 });
         }
     });
 
-    // ATIVA O FISCAL DE SEGURANÇA
-    iniciarFiscalizacao(itensVendidos[0].compra_id);
+    const hist = JSON.parse(localStorage.getItem('arraiá_historico') || "[]");
+    iniciarFiscalizacao(hist);
 }
 
-// ESTA FUNÇÃO CHECA SE O MESÁRIO DEU BAIXA NO TICKET
-function iniciarFiscalizacao(compraID) {
+function iniciarFiscalizacao(hist) {
     if(securityInterval) clearInterval(securityInterval);
     securityInterval = setInterval(async () => {
-        const { data } = await _supabase.from('vendas').select('id, status').eq('compra_id', compraID);
+        const { data } = await _supabase.from('vendas').select('*').in('compra_id', hist);
         if (data) {
-            data.forEach(item => {
-                if (item.status === 'ENTREGUE') {
-                    const card = document.getElementById(`card-${item.id}`);
-                    if (card && !card.classList.contains('entregue')) {
-                        card.classList.add('entregue');
-                        document.getElementById(`area-qr-${item.id}`).innerHTML = '<h2 style="color:red; font-weight:900;">PEDIDO ENTREGUE</h2>';
-                        document.getElementById(`status-text-${item.id}`).innerHTML = '✕ TICKET JÁ UTILIZADO';
-                        document.getElementById(`status-text-${item.id}`).style.color = 'red';
-                    }
-                }
+            const entregueNovo = data.some(item => {
+                const card = document.getElementById(`card-${item.id}`);
+                return item.status === 'ENTREGUE' && card && !card.classList.contains('entregue');
             });
+            if (entregueNovo) mostrarTicketsSucesso(data.filter(i => i.status !== 'PENDENTE'));
         }
     }, 5000);
 }
 
 function verificarCompraExistente() {
-    const salvo = localStorage.getItem('arraiá_ultima_compra');
-    if (salvo) document.getElementById('tickets-float').style.display = 'block';
+    const hist = JSON.parse(localStorage.getItem('arraiá_historico') || "[]");
+    if (hist.length > 0) document.getElementById('tickets-float').style.display = 'block';
 }
 
 async function recuperarMeusPedidos() {
-    const salvo = localStorage.getItem('arraiá_ultima_compra');
-    if (!salvo) return;
+    const hist = JSON.parse(localStorage.getItem('arraiá_historico') || "[]");
+    if (!hist.length) return;
     openCheckout();
-    document.getElementById('checkout-items').innerHTML = '<div class="spinner" style="margin-top:50px"></div><p style="text-align:center">Buscando seus tickets...</p>';
+    document.getElementById('checkout-items').innerHTML = '<div class="spinner"></div>';
     document.getElementById('footer-checkout').style.display = 'none';
-    const { data } = await _supabase.from('vendas').select('*').eq('compra_id', salvo);
-    
+    const { data } = await _supabase.from('vendas').select('*').in('compra_id', hist);
     if (data && data.length > 0) {
-        const jaPago = data.some(item => item.status === 'PAGO' || item.status === 'ENTREGUE');
-        if (jaPago) mostrarTicketsSucesso(data);
-        else {
-            const valorTotal = data.reduce((acc, item) => acc + item.valor, 0);
-            mostrarTelaPagamento(valorTotal);
-            iniciarVigilancia(data[0].id, data);
-        }
-    } else {
-        localStorage.removeItem('arraiá_ultima_compra');
-        document.getElementById('tickets-float').style.display = 'none';
-        closeCheckout();
-    }
-}
-
-function limparEComprarDeNovo() {
-    closeCheckout(); 
-    localStorage.removeItem('arraiá_ultima_compra');
-    document.getElementById('tickets-float').style.display = 'none';
-    cart = []; totalValue = 0; updateUI();
-    location.reload();
+        const válidos = data.filter(i => i.status !== 'PENDENTE');
+        if (válidos.length > 0) mostrarTicketsSucesso(válidos);
+        else closeCheckout();
+    } else closeCheckout();
 }
 
 init();
