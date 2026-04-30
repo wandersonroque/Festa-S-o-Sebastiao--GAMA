@@ -120,7 +120,6 @@
             cursor: pointer; margin-top: 15px;
         }
 
-        /* Estilo para múltiplos tickets */
         .ticket-card {
             background: #fffcf0;
             border: 2px dashed #f1c40f;
@@ -197,7 +196,6 @@
     </div>
 
 <script>
-// CONFIGURAÇÃO SUPABASE
 const SUPABASE_URL = "https://ttmwwvqowcuxmtdwlyms.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0bXd3dnFvd2N1eG10ZHdseW1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczOTc5NjcsImV4cCI6MjA5Mjk3Mzk2N30.G88ljgeVsjapjmT2KhboaQiAPtwxhde35Cgxis7sc4w";
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -285,21 +283,24 @@ function removeItem(idx) {
     openCheckout();
 }
 
-// NOVA LÓGICA DE PROCESSAMENTO (Múltiplos Itens)
+// LÓGICA ATUALIZADA: Agrupamento por ID de Compra
 async function processOrder() {
     if (!cart.length) return;
     const btn = document.querySelector('.btn-finish');
     btn.disabled = true;
-    btn.innerText = "GERANDO TICKETS...";
+    btn.innerText = "GERANDO PIX ÚNICO...";
 
-    // CRIANDO CADA ITEM INDIVIDUALMENTE COM CATEGORIA
+    // Geramos um ID único para a compra inteira (várias linhas terão esse mesmo código)
+    const compraID = "COMPRA_" + Math.random().toString(36).substr(2, 9).toUpperCase();
+
     const itensParaInserir = cart.map(item => ({
         cliente: "APP_USER",
         itens: item.nome,
         valor: item.preco,
         status: 'PENDENTE',
         token: Math.floor(1000 + Math.random() * 9000),
-        categoria: item.categoria || 'geral' // GARANTE QUE NÃO FICA NULL
+        categoria: item.categoria || 'geral',
+        compra_id: compraID // Adicione esta coluna na sua tabela 'vendas' no Supabase se quiser rastrear compras juntas
     }));
 
     try {
@@ -311,10 +312,16 @@ async function processOrder() {
             <div style="text-align:center; padding: 40px 0;">
                 <div class="spinner"></div>
                 <h2 style="color:var(--primary); font-weight:800;">AGUARDANDO PAGAMENTO</h2>
-                <p>Valor Total: R$ ${totalValue.toFixed(2)}</p>
+                <div style="background:#f8f9fa; padding:20px; border-radius:15px; margin:20px 0; border: 2px dashed #ddd;">
+                    <p style="font-size:0.8rem; color:#666; margin:0;">VALOR TOTAL DO PIX</p>
+                    <h1 style="margin:5px 0; color:var(--success);">R$ ${totalValue.toFixed(2).replace('.', ',')}</h1>
+                    <p style="font-size:0.7rem;">Pague uma vez para liberar todos os ${cart.length} itens.</p>
+                </div>
+                <p style="font-size:0.85rem; color:var(--text-sub);">O sistema liberará seus tickets automaticamente após a confirmação.</p>
             </div>
         `;
 
+        // Vigia o status da compra. Se um item for pago, libera todos.
         iniciarVigilancia(data[0].id, data); 
     } catch (e) {
         alert("Erro ao salvar: " + e.message);
@@ -324,13 +331,15 @@ async function processOrder() {
 
 function iniciarVigilancia(idReferencia, todosOsDados) {
     const checkStatus = setInterval(async () => {
+        // Checamos o status de apenas um item da compra. 
+        // Se você marcar ele como 'PAGO' no painel do Supabase, o site entende que a compra toda foi paga.
         const { data } = await _supabase.from('vendas').select('status').eq('id', idReferencia).single();
+        
         if (data && data.status === 'PAGO') {
             clearInterval(checkStatus);
-            // Agora busca todos os tokens atualizados do banco para garantir
             mostrarTicketsSucesso(todosOsDados);
         }
-    }, 3000);
+    }, 3000); // Checa a cada 3 segundos
 }
 
 function mostrarTicketsSucesso(itensVendidos) {
@@ -353,17 +362,17 @@ function mostrarTicketsSucesso(itensVendidos) {
     document.getElementById('checkout-items').innerHTML = `
         <div style="text-align:center; padding: 20px 0;">
             <div style="font-size:3rem;">🙏</div>
-            <h2 style="color:var(--success); font-weight:800; margin-bottom:5px;">PEDIDO CONFIRMADO!</h2>
-            <p style="font-size:0.8rem; color:#666;">Deslize para o lado para ver todos os seus tickets:</p>
+            <h2 style="color:var(--success); font-weight:800; margin-bottom:5px;">PAGAMENTO CONFIRMADO!</h2>
+            <p style="font-size:0.8rem; color:#666;">Aqui estão seus ${itensVendidos.length} tickets. Deslize para o lado:</p>
             ${ticketsHTML}
-            <button onclick="location.reload()" style="background:#f0f0f0; border:none; width:80%; padding:15px; border-radius:12px; font-weight:bold; margin-top:20px;">VOLTAR AO INÍCIO</button>
+            <button onclick="location.reload()" style="background:#f0f0f0; border:none; width:80%; padding:15px; border-radius:12px; font-weight:bold; margin-top:20px;">NOVA COMPRA</button>
         </div>
     `;
 
-    // Gerar os QR Codes para cada ticket
+    // SÓ GERA O QR CODE AGORA (FILTRO DE SEGURANÇA)
     itensVendidos.forEach((item, index) => {
         new QRCode(document.getElementById(`qrcode-${index}`), {
-            text: `VALIDAR_${item.id}_${item.token}`, // O Validador lerá o ID da venda e o Token
+            text: `VALIDAR_${item.id}_${item.token}`,
             width: 130,
             height: 130
         });
